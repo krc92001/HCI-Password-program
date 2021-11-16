@@ -17,6 +17,7 @@ import string, re, random
 from typing import Collection
 import pyperclip
 import string
+from sys import exit
 #Classes 
 
 class Password():
@@ -74,6 +75,7 @@ def check_pass(pass_value,username) :
     missing_num = Requirement('Password is missing Number', False)
     pass_len  = Requirement('Password Too short Must be >= 14 characters', False)
     invalid = Requirement('Invalid Password: Username in password or password is in exluded list', False)
+    excluded = Requirement('Password contains restricted word', False)
     
     if len_pass < 14 : 
         pass_len.status = True
@@ -87,12 +89,14 @@ def check_pass(pass_value,username) :
         missing_num.status = True
     if(pass_value in excluded_pass_list or username in pass_value) :
         invalid.status = True
-    passwd_stats = [pass_len, missing_num, missing_caps, missing_lower, missing_symbol, invalid]
+    if('password' in pass_value.lower() or pass_value in excluded_pass_list) :
+        excluded.status = True
+    passwd_stats = [pass_len, missing_num, missing_caps, missing_lower, missing_symbol, invalid, excluded]
     result_string = '' # used to print errors
     for req in passwd_stats :
         if req.status :
             result_string = result_string+"\n"+req.value
-    passwd_status = [pass_len.status, missing_num.status, missing_caps.status, missing_lower.status, missing_symbol.status, invalid.status]
+    passwd_status = [pass_len.status, missing_num.status, missing_caps.status, missing_lower.status, missing_symbol.status, invalid.status, excluded.status]
     if not any(passwd_status) :
         return True
     else :
@@ -116,7 +120,7 @@ def create_user(username,password):
         newuser.passwd.value=passinput
         list_of_users.append(newuser.username)# appends username to list of usernames for password function usage
         user_data.append(newuser) #stores the actual user object for verification
-        showinfo("SUCCESS",f"User Account created\nCurrent Users: {list_of_users}")
+        showinfo("SUCCESS",f"User Account created; {userinput}")
     else:
         return error
 
@@ -189,7 +193,9 @@ def check_from_file(filename):
         showinfo("ERROR", "NO FILE SELECTED")
         return error
     with open(filename, "r") as input:
-        list_of_passwds = input.readlines()
+        text_dump = input.read()
+        text_dump = text_dump.replace(" ", "")
+        list_of_passwds = text_dump.split(",")
         list_of_results = []
         for passwd in list_of_passwds :
             results = check_password(username, passwd)
@@ -204,11 +210,12 @@ def check_from_file(filename):
             #makes  print string
             if(req.status):
                 result_string = result_string + req.value + '\n'
-        bool_res[5] = False #fixes some poop code
+        bool_res[5] = False # voids out username clause for check by file
         if not any(bool_res):
             showinfo("SUCCESS", f"The password: {list_of_passwds[index]} is acceptable; Good job")
         
         else:
+            result_string = result_string.replace(f'INCORRECT USERNAME RETRY!{username}', '')
             showinfo("!!!MISSING REQUIREMENT!!!",f"Password: {list_of_passwds[index]}\n{result_string}")
         index+=1
 
@@ -264,8 +271,8 @@ def check_password(username, pass_value):
     
     """
 
-    #list of excluded passwords
-    excluded_pass_list = ['Password1234!', ]
+    #list of excluded passwords can be expanded using a file import but for performance purposes it is made short
+    excluded_pass_list = ['Password1234!','CardLLC','providence','rhodeisland','Providence','RhodeIsland','islandrhode',username, ' ']
 
     class Requirement():
         def __init__(self, value, status):
@@ -285,6 +292,7 @@ def check_password(username, pass_value):
     missing_num = Requirement('Password is missing Number', False)
     pass_len  = Requirement('Password Too short Must be >= 14 characters', False)
     invalid = Requirement(f'INCORRECT USERNAME RETRY!{username}', False)
+    excluded = Requirement('Password contains restricted word', False)
     
     if len_pass < 14 : 
         pass_len.status = True
@@ -298,7 +306,9 @@ def check_password(username, pass_value):
         missing_num.status = True
     if(username not in list_of_users) :
         invalid.status = True
-    passwd_stats = [pass_len, missing_num, missing_caps, missing_lower, missing_symbol, invalid]
+    if('password' in pass_value.lower() or pass_value in excluded_pass_list) :
+        excluded.status = True
+    passwd_stats = [pass_len, missing_num, missing_caps, missing_lower, missing_symbol, invalid, excluded]
 
     return passwd_stats
 
@@ -319,7 +329,7 @@ def get_passwd_input(username, password_entry,cur_user) :
     if not any(bool_res):
         for data in user_data:
             if data.username == fetched_username and data.passwd.value ==fetched_passwd:
-                showinfo("SUCCESS", f"The User: {fetched_username} login is acceptable; Not sure what you get access to...")
+                showinfo("SUCCESS", f"The User: {fetched_username} Login is acceptable\nYou can now change password and view user info")
                 login_status=True
                 cur_user.configure(text = f"Currently logged in as :{fetched_username} {login_status}")
             else: 
@@ -333,6 +343,10 @@ def get_passwd_input(username, password_entry,cur_user) :
 def GUI():
     "Creates the GUI and contains the elements of a GUI"
     global login_status
+    
+    #policy warning
+
+    
     #GUI only functions - only adjust things pertaining to the gui
     
     def browseFiles():
@@ -349,15 +363,16 @@ def GUI():
     
     #pictures for Graphics
     
-    login_photo = PhotoImage(file= r"image_assets\button.png")
-    password_label_img = PhotoImage(file= r"image_assets\password.png")
-    background_image = PhotoImage(file=r"image_assets\Cool_Backgrounds.png")
-    logout_image = PhotoImage(file= r"image_assets\logout.png")
-    exit_image = PhotoImage(file= r"image_assets\exit.png")
-    username_image = PhotoImage(file= r"image_assets\username.png")
-    creat_user_img = PhotoImage(file= r"image_assets\createuser.png")
-    passgen_image = PhotoImage(file=r"image_assets\passgen.png")
-    chk_frm_file_img = PhotoImage(file=r"image_assets\checkfromfile.png")
+    login_photo = PhotoImage(file= r"HCI-Password-program\image_assets\button.png")
+    password_label_img = PhotoImage(file= r"HCI-Password-program\image_assets\password.png")
+    background_image = PhotoImage(file=r"HCI-Password-program\image_assets\Cool_Backgrounds.png")
+    logout_image = PhotoImage(file= r"HCI-Password-program\image_assets\logout.png")
+    exit_image = PhotoImage(file= r"HCI-Password-program\image_assets\exit.png")
+    username_image = PhotoImage(file= r"HCI-Password-program\image_assets\username.png")
+    creat_user_img = PhotoImage(file= r"HCI-Password-program\image_assets\createuser.png")
+    passgen_image = PhotoImage(file=r"HCI-Password-program\image_assets\passgen.png")
+    chk_frm_file_img = PhotoImage(file=r"HCI-Password-program\image_assets\checkfromfile.png")
+    
     #window settings
     tkWindow.resizable(False,False)
     tkWindow.title("Password Program - Kenny Card")
@@ -412,7 +427,7 @@ def GUI():
 
     #Extra function Buttons
 
-    exitButton = Button(tkWindow,image=exit_image,highlightthickness=0,bd=2, bg="black", command=exit)
+    exitButton = Button(tkWindow,image=exit_image,highlightthickness=0,bd=2, bg="black", command=lambda: exit(0))
     exitButton.grid(row=10, column=0)
     exitButton.image=exit_image
     password_generator_button = Button(tkWindow, image=passgen_image, command=generate_passwd, border = 0,highlightthickness=0,bd=2, bg="black")
